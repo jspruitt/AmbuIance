@@ -16,9 +16,9 @@ import traceback
 
 #########
 # comp140 code
-extra_path = 'simplemap'
+extra_path = 'simplemap2'
 # example.py version
-# extra_path = ''
+extra_path = ''
 TEMPLATES_DIR = FileSystemLoader(os.path.join(extra_path, 'simplemap/templates'))
 
 ZOOM_DEFAULT = 11
@@ -26,7 +26,7 @@ LINES_DEFAULT = []
 
 
 class Map(object):
-	def __init__(self, title, center=None, zoom=11, markers=[], points=None, html_template='basic.html', config_file=os.path.join(extra_path, 'config.json')):
+	def __init__(self, title, center=None, zoom=11, markers=[], points=None, html_template='basic.html', config_file='config.json'):
 		self._env = Environment(loader=TEMPLATES_DIR, trim_blocks=True, undefined=SilentUndefined)
 		self.title = title
 		self.template = self._env.get_template(html_template)

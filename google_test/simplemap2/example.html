@@ -26,7 +26,7 @@ function initMap() {
 	Lines are drawn in the order they come in.
 	Meaning lines will be drawn from point[0] to point[1] to point[2] etc.
 	*/ 
-	var points = [];
+	var points = [{'lat': 34.5124, 'lng': -118.1111}, {'lat': 34.5235, 'lng': -118.1245}, {'lat': 34.6432, 'lng': -118.1554}, {'lat': 34.5235, 'lng': -118.1245}];
 	// flightPath takes the points and draws lines between them all.
 	var flightPath = new google.maps.Polyline({
           path: points,
