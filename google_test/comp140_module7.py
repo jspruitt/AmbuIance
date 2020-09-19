@@ -7,6 +7,9 @@ import math
 import comp140_module7_graphs as graphs
 import simplemap2.simplemap as simplemap
 import webbrowser
+import googlemaps
+from sklearn.neighbors import BallTree
+import numpy as np
 
 # Constants
 WIDTH = 800
@@ -462,75 +465,42 @@ class MapGUI:
     """
 
     def __init__(self, name, location, mapdata, pathdata,
-                 measle_icon, start_icon, stop_icon,
-                 start_loc=None, stop_loc=None,
-                 bfs_dfs=None, queue_class=None, stack_class=None,
-                 recursive_dfs=None, astar=None):
+                 measle_icon, start_icon, stop_icon, algorithm, google,
+                 start_loc=None, stop_loc=None):
         # Store icon urls
         self._measle_icon = open(measle_icon)
         self._start_icon = open(start_icon)
         self._stop_icon = open(stop_icon)
 
-        # Store search functions, support classes
-        self._bfs_dfs_func = bfs_dfs
-        self._queue_class = queue_class
-        self._stack_class = stack_class
-        self._dfs_func = recursive_dfs
-        self._astar_func = astar
+        self._start_id = start_loc
+        self._stop_id = stop_loc
 
-        # Start/stop markers
-        self._select_start = False
-        self._select_stop = False
-        self._start_marker = None
-        self._stop_marker = None
-
-        # self._map = simplemap.create_map(name, location,
-        #                                  WIDTH, HEIGHT, CTRLWIDTH)
-        #
-        #
-        # # add buttons to the control frame of the GUI
-        # self._map.add_break()
-        # self._map.add_break()
-        # self._map.add_button("Select Start Marker",
-        #                      self.choose_start, CTRLWIDTH)
-        # self._map.add_break()
-        # self._map.add_button("Select Stop Marker",
-        #                      self.choose_stop, CTRLWIDTH)
-        # self._map.add_break()
-        # self._map.add_break()
-        # self._map.add_button("Run Google Route",
-        #                      self.google_route, CTRLWIDTH)
-        # self._map.add_break()
-        # self._map.add_button("Run BFS", self.bfs, CTRLWIDTH)
-        # self._map.add_break()
-        # self._map.add_button("Run DFS", self.dfs, CTRLWIDTH)
-        # self._map.add_break()
-        # self._map.add_button("Run Recursive DFS", self.rdfs, CTRLWIDTH)
-        # self._map.add_break()
-        # self._map.add_button("Run A*", self.astar, CTRLWIDTH)
-        # self._map.add_break()
-        # self._map.add_break()
-        # self._map.add_button("Draw Graph", self.draw_graph, CTRLWIDTH)
-        # self._map.add_break()
-        # self._map.add_button("Clear Lines", self._map.clear_lines, CTRLWIDTH)
+        self._algorithm = algorithm
+        self._gmaps = google
 
         # read map data and create markers for each intersection
         self._graph = graphs.DiGraph()
         self._markers = {}
         self._marker_list = []
+        self._loc_list = []
         self._road_dictionary = []
+
 
         self._read_map(mapdata)
         self._read_paths(pathdata)
 
-        # # Initialize start/stop markers, if possible
-        # if start_loc != None and start_loc in self._markers:
-        #     self._start_marker = self._markers[start_loc]
-        #     self._start_marker.set_icon(self._start_icon)
-        #
-        # if stop_loc != None and stop_loc in self._markers:
-        #     self._stop_marker = self._markers[stop_loc]
-        #     self._stop_marker.set_icon(self._stop_icon)
+        coords = [29.719573, -95.408499]
+        results = self._gmaps.reverse_geocode(tuple(coords))
+        new_loc = results[0]['place_id']
+        neighbors = self.nearest_neighbors(coords)
+        for nb2 in neighbors:
+            self._graph.add_edge(new_loc, nb2)
+            self._graph.add_edge_attr(new_loc, nb2, "dist", 0)
+            self._graph.add_edge_attr(new_loc, nb2, "path", None)
+        self._markers[new_loc] = coords
+        self._marker_list += [coords]
+        self._start_id = new_loc
+        self.call_algorithm()
 
         self.draw_graph()
 
@@ -559,6 +529,7 @@ class MapGUI:
                 #marker = self._map.add_marker(name, loc, self._measle_icon,
                                               #(lat, lng), self.click)
                 self._marker_list += [marker]
+                self._loc_list += [loc]
                 self._markers[loc] = marker
 
                 nbr2 = nbrs.split(',')
@@ -567,6 +538,15 @@ class MapGUI:
                     self._graph.add_edge(loc, nb2[0])
                     self._graph.add_edge_attr(loc, nb2[0], "dist", float(nb2[1]))
                     self._graph.add_edge_attr(loc, nb2[0], "path", None)
+
+    def nearest_neighbors(self, start_loc):
+        """
+        Find nearest point to the location
+        """
+        a = np.array(self._marker_list)
+        ball_tree = BallTree(a, leaf_size=2)
+        dist, ind = ball_tree.query([start_loc], k=2)
+        return [self._loc_list[i] for i in ind[0]]
 
     def _read_paths(self, pathdata):
         """
@@ -590,9 +570,6 @@ class MapGUI:
             for pair in fields[2:]:
                 elems = pair.split(":")
                 point = (float(elems[0].strip()), float(elems[1].strip()))
-                formatted_point = {'lat': float(elems[0].strip()), 'lng':float(elems[1].strip())}
-                if formatted_point not in self._road_dictionary:
-                    self._road_dictionary += [formatted_point]
                 path.append(point)
             self._graph.add_edge_attr(begin, end, "path", path)
 
@@ -600,7 +577,8 @@ class MapGUI:
         """
         Draw the entire graph.
         """
-        self._map = simplemap.Map("Rice", markers=self._marker_list, points=self._road_dictionary)
+        markers = [[29.7174, -95.4018]]
+        self._map = simplemap.Map("Rice", markers=markers, points=self._road_dictionary)
 
         file_url = self._map.write('simplemap/rice.html')
         print('HTML page written to: ' + file_url)
@@ -630,174 +608,88 @@ class MapGUI:
         self._select_start = False
         self._select_stop = True
 
-    def google_route(self):
+    def call_algorithm(self):
         """
-        Draw route using Google route.
+        Call provided Alorithm.
         """
-        self._map.clear_lines()
-        if self._start_marker == None or self._stop_marker == None:
-            print("Must set both start and stop markers!")
-            return
-        self._map.draw_line(self._start_marker, self._stop_marker)
+        start_id = self._start_id
+        stop_id = self._stop_id
 
-    def color_edges(self, parent):
+        parent = self._algorithm(self._graph, start_id)
+        self.correct_path(parent, stop_id)
+       # self.color_edges(parent)
+
+    def correct_path(self, parent, end_node):
         """
-        Color the explored edges orange and the actual path green.
+        Find the path based on algorithm
         """
-        lines = {}
 
-        # Color explored edges orange
-        for nd1, nd2 in parent.items():
-            if nd2 != None:
-                if nd1 in self._markers and nd2 in self._markers:
-                    start_marker = self._markers[nd1]
-                    stop_marker = self._markers[nd2]
-                    path = self._graph.get_edge_attr(nd2, nd1, "path")
-                    line = self._map.draw_line(start_marker, stop_marker, path)
-                    lines[(nd2, nd1)] = line
-                    line.set_color('#FF6600')
+        current_node = end_node
 
-        # Color selected path green
-        node = self._stop_marker.get_id()
-        start_id = self._start_marker.get_id()
-        while node != start_id:
-            par = parent[node]
-            lines[(par, node)].set_color('Green')
-            node = par
+        while current_node != None:
+            if current_node in self._markers:
+                formatted_point = [self._markers[current_node][0], self._markers[current_node][1]]
+                self._road_dictionary += [formatted_point]
+            current_node = parent[current_node]
 
-    def bfs_dfs(self, rac_class):
-        """
-        Call the provided BFS/DFS function on the graph.
-        """
-        self._map.clear_lines()
-        if self._start_marker == None or self._stop_marker == None:
-            print("Must set both start and stop markers!")
-            return
-        if self._bfs_dfs_func == None:
-            print("Must provide a BFS/DFS function!")
-            return
-
-        parent = self._bfs_dfs_func(self._graph, rac_class,
-                                    self._start_marker.get_id(),
-                                    self._stop_marker.get_id())
-
-        self.color_edges(parent)
-
-    def bfs(self):
-        """
-        Call BFS.
-        """
-        if self._queue_class == None:
-            print("Must provide a Queue class!")
-            return
-        self.bfs_dfs(self._queue_class)
-
-    def dfs(self):
-        """
-        Call DFS.
-        """
-        if self._stack_class == None:
-            print("Must provide a Stack class!")
-            return
-        self.bfs_dfs(self._stack_class)
-
-    def rdfs(self):
-        """
-        Call provided recursive DFS.
-        """
-        self._map.clear_lines()
-        if self._start_marker == None or self._stop_marker == None:
-            print("Must set both start and stop markers!")
-            return
-        if self._dfs_func == None:
-            print("Must provide a Recursive DFS function!")
-            return
-
-        start_id = self._start_marker.get_id()
-        stop_id = self._stop_marker.get_id()
-
-        parent = {start_id: None}
-        self._dfs_func(self._graph, start_id, stop_id, parent)
-
-        self.color_edges(parent)
-
-    def astar(self):
-        """
-        Call provided A*.
-        """
-        self._map.clear_lines()
-        if self._start_marker == None or self._stop_marker == None:
-            print("Must set both start and stop markers!")
-            return
-        if self._astar_func == None:
-            print("Must provide an A* function!")
-            return
-
-        start_id = self._start_marker.get_id()
-        stop_id = self._stop_marker.get_id()
-        parent = self._astar_func(self._graph, start_id, stop_id,
-                                  map_edge_distance,
-                                  map_straight_line_distance)
-
-        self.color_edges(parent)
-
-    def click(self, marker):
-        """
-        Mouse click handler.  Only does anything if in start/stop
-        select modes.
-        """
-        if self._select_start:
-            self._map.clear_lines()
-            if marker == self._stop_marker:
-                self._stop_marker = None
-            if self._start_marker:
-                self._start_marker.set_icon(self._measle_icon)
-
-            marker.set_icon(self._start_icon)
-            self._start_marker = marker
-            self._select_start = False
-            print("Start:", marker.get_description(), end=' ')
-            print("(id: " + str(marker.get_id()) + ")")
-        elif self._select_stop:
-            self._map.clear_lines()
-            if marker == self._start_marker:
-                self._start_marker = None
-            if self._stop_marker:
-                self._stop_marker.set_icon(self._measle_icon)
-
-            marker.set_icon(self._stop_icon)
-            self._stop_marker = marker
-            self._select_stop = False
-            print("Stop:", marker.get_description(), end=' ')
-            print("(id: " + str(marker.get_id()) + ")")
+        results = self._gmaps.snap_to_roads(path=self._road_dictionary, interpolate=True)
+        self._road_dictionary = [{'lat':r['location']['latitude'], 'lng': r['location']['longitude']} for r in results]
 
 
 #####################
 # Start GUI
 #####################
 
-def start(bfs_dfs, queue_class, stack_class, recursive_dfs, astar):
+def start(algorithm, start_node = None, end_node = None):
     """
     Start the GUI.
     """
-    MapGUI("Rice University", [29.7174, 95.4018],
+    # injury site
+    start_node = 1
+
+    # Houston Methodist ER
+    end_node = [29.7083761,-95.4081554]
+
+    # Find nearest road to gps_location
+    # Hospital should already be a node.
+
+    gmaps = googlemaps.Client(key='AIzaSyCJHUVb9e0rP-h5tPSNzGbSZBI7rMDC6N0')
+
+    MapGUI("Rice University", [29.7174, -95.4018],
            "comp140_module7_mapdata.txt",
            "comp140_module7_pathdata.txt",
            "comp140_module7_measle_blue.jpg",
            "comp140_module7_pin_green.png",
-           "comp140_module7_pin_red.png",
-           "boVs8yK4i4UOA25B6cDpiA",
-           "k__43AH7plMIa25dvpaIsQ",
-           bfs_dfs, queue_class, stack_class,
-           recursive_dfs, astar)
-def bfs_dfs():
-    return False
-def queue_class():
-    return False
-def stack_class():
-    return False
-def recursive_dfs():
-    return False
-def astar():
-    return False
-start(bfs_dfs, queue_class, queue_class, recursive_dfs, astar )
+           "comp140_module7_pin_red.png", algorithm, google = gmaps,
+           start_loc = "boVs8yK4i4UOA25B6cDpiA",
+           stop_loc = "WBvF8w13UYfiuUnIIo_n2g")
+
+def bfs(graph, start_node):
+    """
+    Performs a breadth-first search on graph starting at the
+    start_node.
+    """
+    parents = {start_node: None}
+    orders = {start_node: 0}
+    queue = []
+    queue.append(start_node)
+    parent = {start_node}
+    while queue:
+        next_person = queue.pop(0)
+        children = graph.get_neighbors(next_person)
+        for child in children:
+            if child not in parent:
+                parents[child] = next_person
+                queue.append(child)
+                parent.add(child)
+    return parents
+
+def test():
+
+    gmaps = googlemaps.Client(key='AIzaSyCJHUVb9e0rP-h5tPSNzGbSZBI7rMDC6N0')
+
+    results = gmaps.nearest_roads(points=[[29.7083761,-95.4081554]])
+    print(results)
+
+
+start(bfs)
