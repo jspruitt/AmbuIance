@@ -10,8 +10,9 @@ gps_markers = [ ['Example text', 34.4563,-118.1241], [34.5235,-118.1245], [34.64
 # would have made a new list. The issue is gps_markers is a 2 dimensional array/list, so it was only
 # looking one level deep. So we need to go deeper morty.
 new_gps = [sublist[:] for sublist in gps_markers]
+point = [{'lat':34.5124, 'lng': -118.1111}, {'lat':34.5235, 'lng': -118.1245}, {'lat':34.6432, 'lng': -118.1554}, {'lat':34.5235, 'lng': -118.1245}]
 
-example_map = simplemap.Map(map_title, markers=gps_markers)
+example_map = simplemap.Map(map_title, markers=gps_markers, points = point )
 file_url = example_map.write('example.html')
 print('HTML page written to: ' + file_url)
 webbrowser.open(file_url)
