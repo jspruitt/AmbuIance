@@ -14,19 +14,20 @@ import os
 import sys
 import traceback
 
+
 #########
 # comp140 code
-extra_path = 'simplemap'
+extra_path = 'simplemap2'
 # example.py version
-# extra_path = ''
+#extra_path = ''
+
 TEMPLATES_DIR = FileSystemLoader(os.path.join(extra_path, 'simplemap/templates'))
 
 ZOOM_DEFAULT = 11
 LINES_DEFAULT = []
 
-
 class Map(object):
-	def __init__(self, title, center=None, zoom=11, markers=[], points=None, html_template='basic.html', config_file=os.path.join(extra_path, 'config.json')):
+	def __init__(self, title, center=None, zoom=11, markers=None, points=None, html_template='basic.html', config_file=os.path.join(extra_path, 'config.json')):
 		self._env = Environment(loader=TEMPLATES_DIR, trim_blocks=True, undefined=SilentUndefined)
 		self.title = title
 		self.template = self._env.get_template(html_template)
@@ -36,6 +37,7 @@ class Map(object):
 		self.markers = markers
 		# points for lines added in
 		self.points = points
+
 
 	def set_center(self, center_point):
 		self._center = '{{ lat:{}, lng:{}}}'.format(*center_point) if center_point else 'null'
@@ -47,15 +49,15 @@ class Map(object):
 		if zoom:
 			self._zoom = zoom
 		else:
-			#Don't allow zoom to be null if customer center is given 
+			# Don't allow zoom to be null if customer center is given
 			self._zoom = ZOOM_DEFAULT if self.center else 'null'
 
 	def get_zoom(self):
 		return self._zoom
-	
+
 	def set_config(self, config_file):
 		try:
-			with open(config_file, "r") as config:    
+			with open(config_file, "r") as config:
 				self._config = json.load(config)
 		except IOError:
 			print("Error, unable to open {0} config file.".format(config_file))
@@ -80,8 +82,6 @@ class Map(object):
 					i.insert(0, '')
 			self._markers = markers
 
-	def add_marker(self, marker):
-		self._markers += [marker]
 
 	def get_markers(self):
 		return self._markers
@@ -105,8 +105,9 @@ class Map(object):
 
 	def write(self, output_path):
 		try:
-			html = self.template.render(map_title = self.title, center=self.center,
-				zoom=self.zoom, markers=self.markers, points=self.points, api_key=self.config['api_key'])
+			html = self.template.render(map_title=self.title, center=self.center,
+										zoom=self.zoom, markers=self.markers, points=self.points,
+										api_key=self.config['api_key'])
 			with open(output_path, "w") as out_file:
 				out_file.write(html)
 			return 'file://' + os.path.join(os.path.abspath(os.curdir), output_path)

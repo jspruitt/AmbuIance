@@ -5,7 +5,7 @@ Provided code to work with Google maps.
 import urllib.request
 import math
 import comp140_module7_graphs as graphs
-import simplemap.simplemap as simplemap
+import simplemap2.simplemap as simplemap
 import webbrowser
 
 # Constants
@@ -484,12 +484,6 @@ class MapGUI:
         self._start_marker = None
         self._stop_marker = None
 
-        # Create map frame
-        map_title = name
-        center_point = location
-
-        self._map = simplemap.Map(map_title)
-
         # self._map = simplemap.create_map(name, location,
         #                                  WIDTH, HEIGHT, CTRLWIDTH)
         #
@@ -523,6 +517,7 @@ class MapGUI:
         # read map data and create markers for each intersection
         self._graph = graphs.DiGraph()
         self._markers = {}
+        self._marker_list = []
 
         self._read_map(mapdata)
         self._read_paths(pathdata)
@@ -536,7 +531,7 @@ class MapGUI:
         #     self._stop_marker = self._markers[stop_loc]
         #     self._stop_marker.set_icon(self._stop_icon)
 
-
+        self.draw_graph()
 
     def _read_map(self, mapdata):
         """
@@ -562,6 +557,7 @@ class MapGUI:
                 marker = [lat, lng]
                 #marker = self._map.add_marker(name, loc, self._measle_icon,
                                               #(lat, lng), self.click)
+                self._marker_list += [marker]
                 self._markers[loc] = marker
 
                 nbr2 = nbrs.split(',')
@@ -602,9 +598,12 @@ class MapGUI:
         """
         Draw the entire graph.
         """
-        file_url = self._map.write('example.html')
+        self._map = simplemap.Map("Rice", markers=self._marker_list)
+
+        file_url = self._map.write('simplemap/rice.html')
         print('HTML page written to: ' + file_url)
         webbrowser.open(file_url)
+
         #
         # self._map.clear_lines()
         # for node in self._graph.nodes():
@@ -779,7 +778,7 @@ def start(bfs_dfs, queue_class, stack_class, recursive_dfs, astar):
     """
     Start the GUI.
     """
-    MapGUI("Rice University", [29.7174, -95.4018],
+    MapGUI("Rice University", [29.7174, 95.4018],
            "comp140_module7_mapdata.txt",
            "comp140_module7_pathdata.txt",
            "comp140_module7_measle_blue.jpg",
