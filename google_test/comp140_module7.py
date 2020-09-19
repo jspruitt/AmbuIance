@@ -5,7 +5,7 @@ Provided code to work with Google maps.
 import urllib.request
 import math
 import comp140_module7_graphs as graphs
-import simplemap
+import simplemap.simplemap as simplemap
 import webbrowser
 
 # Constants
@@ -527,14 +527,15 @@ class MapGUI:
         self._read_map(mapdata)
         self._read_paths(pathdata)
 
-        # Initialize start/stop markers, if possible
-        if start_loc != None and start_loc in self._markers:
-            self._start_marker = self._markers[start_loc]
-            self._start_marker.set_icon(self._start_icon)
+        # # Initialize start/stop markers, if possible
+        # if start_loc != None and start_loc in self._markers:
+        #     self._start_marker = self._markers[start_loc]
+        #     self._start_marker.set_icon(self._start_icon)
+        #
+        # if stop_loc != None and stop_loc in self._markers:
+        #     self._stop_marker = self._markers[stop_loc]
+        #     self._stop_marker.set_icon(self._stop_icon)
 
-        if stop_loc != None and stop_loc in self._markers:
-            self._stop_marker = self._markers[stop_loc]
-            self._stop_marker.set_icon(self._stop_icon)
 
 
     def _read_map(self, mapdata):
@@ -545,30 +546,30 @@ class MapGUI:
         mapdatafile = open(mapdata)
 
         for line in mapdatafile.readlines():
-            line = line.decode('utf-8')
-            fields = line.split(';')
-            loc = fields[0]
-            nbrs = fields[1].strip()
-            lat = float(fields[2].strip())
-            lng = float(fields[3].strip())
-            name = fields[4].strip()
+            if len(line) > 1:
+                fields = line.split(';')
+                loc = fields[0]
+                nbrs = fields[1].strip()
+                lat = float(fields[2].strip())
+                lng = float(fields[3].strip())
+                name = fields[4].strip()
 
-            self._graph.add_node(loc)
-            self._graph.add_node_attr(loc, "lat", lat)
-            self._graph.add_node_attr(loc, "lng", lng)
-            self._graph.add_node_attr(loc, "name", name)
+                self._graph.add_node(loc)
+                self._graph.add_node_attr(loc, "lat", lat)
+                self._graph.add_node_attr(loc, "lng", lng)
+                self._graph.add_node_attr(loc, "name", name)
 
-            marker = [lat, lng]
-            #marker = self._map.add_marker(name, loc, self._measle_icon,
-                                          #(lat, lng), self.click)
-            self._markers[loc] = marker
+                marker = [lat, lng]
+                #marker = self._map.add_marker(name, loc, self._measle_icon,
+                                              #(lat, lng), self.click)
+                self._markers[loc] = marker
 
-            nbr2 = nbrs.split(',')
-            for nb1 in nbr2:
-                nb2 = nb1.strip().split(':')
-                self._graph.add_edge(loc, nb2[0])
-                self._graph.add_edge_attr(loc, nb2[0], "dist", float(nb2[1]))
-                self._graph.add_edge_attr(loc, nb2[0], "path", None)
+                nbr2 = nbrs.split(',')
+                for nb1 in nbr2:
+                    nb2 = nb1.strip().split(':')
+                    self._graph.add_edge(loc, nb2[0])
+                    self._graph.add_edge_attr(loc, nb2[0], "dist", float(nb2[1]))
+                    self._graph.add_edge_attr(loc, nb2[0], "path", None)
 
     def _read_paths(self, pathdata):
         """
@@ -580,7 +581,6 @@ class MapGUI:
         nodes = self._graph.nodes()
 
         for line in pathdatafile.readlines():
-            line = line.decode('utf-8')
             fields = line.split(';')
             begin = fields[0].strip()
             end = fields[1].strip()
@@ -780,11 +780,11 @@ def start(bfs_dfs, queue_class, stack_class, recursive_dfs, astar):
     Start the GUI.
     """
     MapGUI("Rice University", [29.7174, -95.4018],
-           "comp140_module7_measle_blue.png",
-           "comp140_module7_pin_green.png",
-           "comp140_module7_pin_red.png",
            "comp140_module7_mapdata.txt",
            "comp140_module7_pathdata.txt",
+           "comp140_module7_measle_blue.jpg",
+           "comp140_module7_pin_green.png",
+           "comp140_module7_pin_red.png",
            "boVs8yK4i4UOA25B6cDpiA",
            "k__43AH7plMIa25dvpaIsQ",
            bfs_dfs, queue_class, stack_class,
