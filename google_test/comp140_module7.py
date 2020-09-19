@@ -518,6 +518,7 @@ class MapGUI:
         self._graph = graphs.DiGraph()
         self._markers = {}
         self._marker_list = []
+        self._road_dictionary = []
 
         self._read_map(mapdata)
         self._read_paths(pathdata)
@@ -580,7 +581,6 @@ class MapGUI:
             fields = line.split(';')
             begin = fields[0].strip()
             end = fields[1].strip()
-
             if not begin in nodes:
                 continue
             if not end in self._graph.get_neighbors(begin):
@@ -590,21 +590,23 @@ class MapGUI:
             for pair in fields[2:]:
                 elems = pair.split(":")
                 point = (float(elems[0].strip()), float(elems[1].strip()))
+                formatted_point = {'lat': float(elems[0].strip()), 'lng':float(elems[1].strip())}
+                if formatted_point not in self._road_dictionary:
+                    self._road_dictionary += [formatted_point]
                 path.append(point)
-
             self._graph.add_edge_attr(begin, end, "path", path)
 
     def draw_graph(self):
         """
         Draw the entire graph.
         """
-        self._map = simplemap.Map("Rice", markers=self._marker_list)
+        self._map = simplemap.Map("Rice", markers=self._marker_list, points=self._road_dictionary)
 
         file_url = self._map.write('simplemap/rice.html')
         print('HTML page written to: ' + file_url)
         webbrowser.open(file_url)
 
-        #
+
         # self._map.clear_lines()
         # for node in self._graph.nodes():
         #     for nbr in self._graph.get_neighbors(node):
