@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>A Basic Map</title>
+	<style>
+		#map {
+			height: 100%;
+		}
+		/* Optional: Makes the sample page fill the window. */
+		html, body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+	<script>
+		function initMap() {
+			var mapOptions = {
+				zoom: 5,
+				center: new google.maps.LatLng(40.7534, -85.1606),
+				mapTypeId: 'roadmap'
+			};
+			var map = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+			var roadTripCoordinates = [
+				{lat:40.759011,lng:-73.984472},
+				{lat:40.916765,lng:-74.171811},
+				{lat:41.320043,lng:-73.979287},
+				{lat:41.503427,lng:-74.010418},
+				{lat:40.4406,lng:-79.9959},
+				{lat:41.878114,lng:-87.629798},
+				{lat:41.515776,lng:-88.089981},
+				{lat:41.603121,lng:-93.615418},
+				{lat:41.614432,lng:-94.017453},
+				{lat:41.506006,lng:-94.318428},
+				{lat:41.264905,lng:-95.995216},
+				{lat:40.922593,lng:-98.342114},
+				{lat:41.134193,lng:-104.816437},
+				{lat:39.755373,lng:-104.984837}
+			];
+			var roadTrip = new google.maps.Polyline({
+				path: roadTripCoordinates,
+				strokeColor: '#FF0000',
+				strokeOpacity: 1.0,
+				strokeWeight: 2
+			});
+			roadTrip.setMap(map);
+		}
+	</script>
+</head>
+<body>
+<div id="map"></div>
+<script async defer
+		src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTM5RKrtCLpZAj5HU3K3cTvFNB240NsBg&callback=initMap">
+</script>
+</body>
+</html>
