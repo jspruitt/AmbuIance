@@ -5,6 +5,7 @@ import datetime
 from lane_detection_follower import LaneDetectionFollower
 from intersect_detection import IntersectDetection
 from ml_follower_tpu import MLFollower
+from tpu_processor import TPUProcessor
 
 _SHOW_IMAGE = True
 
@@ -40,18 +41,17 @@ class DeepPiCar(object):
 
         logging.debug('Set up front wheels')
         self.front_wheels = picar.front_wheels.Front_Wheels()
-        self.front_wheels.turning_offset = 0  # calibrate servo to center
+        self.front_wheels.turning_offset = 00  # calibrate servo to center
         self.front_wheels.turn(90)  # Steering Range is 45 (left) - 90 (center) - 135 (right)
-
+        
+        self.tpu_processor = TPUProcessor(self)
+        self.intersect = IntersectDetection(self)      		
         self.lane_follower = LaneDetectionFollower(self)
-        self.intersect = IntersectDetection(self)
 #         self.lane_follower = MLFollower(self)
-#         self.traffic_sign_processor = ObjectsOnRoadProcessor(self)
-#         lane_follower = DeepLearningLaneFollower()
 
         self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
         datestr = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
-        self.video_orig = self.create_video_recorder('../data/car_video%s.avi' % datestr)
+        self.video_orig = self.create_video_recorder('../data/video03.avi')
         self.video_lane = self.create_video_recorder('../data/car_video_lane%s.avi' % datestr)
         self.video_objs = self.create_video_recorder('../data/car_video_objs%s.avi' % datestr)
 
@@ -95,30 +95,35 @@ class DeepPiCar(object):
         Keyword arguments:
         speed -- speed of back wheel, range is 0 (stop) - 100 (fastest)
         """
-
         logging.info('Starting to drive at speed %s...' % speed)
         self.back_wheels.forward()
         self.back_wheels.speed = speed
         self.i = 0
         self.first_time = datetime.datetime.now()
+        intersect_count = 0
         while self.camera.isOpened():
-            _, image_lane = self.camera.read()
-            image_objs = image_lane.copy()
-            self.i += 1
-            self.video_orig.write(image_lane)
-
-#             image_objs = self.process_objects_on_road(image_objs)
-#             self.video_objs.write(image_objs)
-#             show_image('Detected Objects', image_objs)
-
-#             image_lane = self.follow_lane(image_lane)
-            image_lane2 = self.detect_intersect(image_lane)
-            self.video_lane.write(image_lane2)
-            show_image('Lane Lines', image_lane2)
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                self.cleanup(self.i, self.first_time)
-                break
+        	_, image_lane = self.camera.read()
+        	image_objs = image_lane.copy()
+        	self.i += 1
+        	self.video_orig.write(image_lane)
+        	is_intersect = self.detect_intersect(image_lane)
+        	logging.debug("intersect: " + str(is_intersect))
+        	if is_intersect:
+        		intersect_count += 1
+        		if intersect_count >= 3: # there is an intersection detected
+        			# todo: go through the list of turns / where to import the list?
+        			self.intersection_turn(image_lane, [1, 0, 0, -1, 0]) # todo: change fixed list
+        			intersect_count = 0
+        			continue
+        	else: # there is no intersection detected
+        		intersect_count = 0
+        		image_lane = self.follow_lane(image_lane)
+        	self.video_lane.write(image_lane)
+        	show_image('Lane Lines', image_lane)
+        	
+        	if cv2.waitKey(1) & 0xFF == ord('q'):
+        		self.cleanup(self.i, self.first_time)
+        		break
 
     def process_objects_on_road(self, image):
         image = self.traffic_sign_processor.process_objects_on_road(image)
@@ -131,11 +136,29 @@ class DeepPiCar(object):
     def detect_intersect(self, image):
         image = self.intersect.detect_intersect(image)
         return image
+    
+    def intersection_turn(self, image, turns):
+    	turn_magnitude = 45
+    	turn = turns.pop(0)
+    	turn_time = 5
+    	s_diff = 0
+    	start_time = datetime.datetime.now()
+    	
+    	while s_diff < turn_time:
+    		cnt_time = datetime.datetime.now()
+    		diff = cnt_time - start_time
+    		s_diff = diff.seconds
+    		
+    		if turn == -1:
+    			self.front_wheels.turn(90 - turn_magnitude)
+    		elif turn == 0:
+    			self.front_wheels.turn(90)
+    		else:
+    			self.front_wheels.turn(90 + turn_magnitude)
+    			
+    	return image
+    		
 
-
-############################
-# Utility Functions
-############################
 def show_image(title, frame, show=_SHOW_IMAGE):
     if show:
         cv2.imshow(title, frame)

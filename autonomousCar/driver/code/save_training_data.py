@@ -1,10 +1,10 @@
 import cv2
 import sys
-from hand_coded_lane_follower import HandCodedLaneFollower
+from lane_detection_follower import LaneDetectionFollower
 
 
 def save_image_and_steering_angle(video_file):
-    lane_follower = HandCodedLaneFollower()
+    lane_follower = LaneDetectionFollower()
     cap = cv2.VideoCapture(video_file + '.avi')
 
     try:
