@@ -3,6 +3,7 @@ Map search
 """
 
 import random
+import operator
 
 
 def EVPath(graph, start_node, end_node):
@@ -25,8 +26,8 @@ def EVPath(graph, start_node, end_node):
         nbrs = graph.get_neighbors(node)
 
         #randomly shuffle elements in nbrs to introduce different choices
-        random.shuffle(nbrs)
-
+        if parent[node] != None:
+            nbrs = rankings(graph, nbrs, parent[node])
         for nbr in nbrs:
             if dist[nbr] == float('inf'):
                 dist[nbr] = dist[node] + 1
@@ -36,6 +37,19 @@ def EVPath(graph, start_node, end_node):
                     return parent
 
     return parent
+
+
+def rankings(graph, nbrs, past_node):
+    distances = []
+    for nbr in nbrs:
+        lat_n = graph.get_node_attr(nbr, 'lat')
+        lng_n = graph.get_node_attr(nbr, 'lng')
+
+        lat_p = graph.get_node_attr(past_node, 'lat')
+        lng_p = graph.get_node_attr(past_node, 'lng')
+        distances += [(((lat_n - lat_p)**2 + (lng_n - lng_p)**2)**(1./2), nbr)]
+    distances.sort(key=operator.itemgetter(0), reverse=True)
+    return [n for d, n in distances]
 
 
 
@@ -100,6 +114,7 @@ class Graph:
         Initializes an empty graph.
         """
         self._graph = {}
+        self._attr = {}
 
     def __str__(self):
         """
@@ -135,7 +150,16 @@ class Graph:
         if node not in self._graph:
             self._graph[node] = {}
 
-    def add_edge(self, node1, node2, attrs):
+    def add_node_attr(self, node, key, value):
+        if node not in self._attr:
+            self._attr[node] = {key:value}
+        else:
+            self._attr[node][key] = value
+
+    def get_node_attr(self, node, key):
+        return self._attr[node][key]
+
+    def add_edge(self, node1, node2, attrs=set()):
         """
         Add an edge between two nodes in the graph, adding the nodes
         themselves if they're not already there.
