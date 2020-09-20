@@ -13,7 +13,7 @@ class MLFollower(object):
 
     def __init__(self,
                  car=None,
-                 model_path='/home/pi/DeepPiCar/models/lane_navigation/data/model_result/lane_navigation_final.h5'):
+                 model_path='/home/pi/DeepPiCar/models/lane_navigation/data/model_result/lane_navigation_final_old.h5'):
         logging.info('Creating a MLFollower...')
 
         self.car = car
@@ -25,7 +25,7 @@ class MLFollower(object):
         show_image("orig", frame)
 
         self.curr_steering_angle = self.compute_steering_angle(frame)
-        logging.debug("curr_steering_angle = %d" % self.curr_steering_angle)
+#         logging.debug("curr_steering_angle = %d" % self.curr_steering_angle)
 
         if self.car is not None:
             self.car.front_wheels.turn(self.curr_steering_angle)
@@ -33,23 +33,13 @@ class MLFollower(object):
 
         return final_frame
 
-#     def compute_steering_angle(self, frame):
-#         """ Find the steering angle directly based on video frame
-#             We assume that camera is calibrated to point to dead center
-#         """
-#         preprocessed = img_preprocess(frame)
-#         X = np.asarray([preprocessed])
-#         steering_angle = self.model.predict(X)[0]
-# 
-#         logging.debug('new steering angle: %s' % steering_angle)
-#         return int(steering_angle + 0.5) # round the nearest integer
         
     def compute_steering_angle(self, frame):
         """ Find the steering angle directly based on video frame
             We assume that camera is calibrated to point to dead center
         """
         # Load the TFLite model and allocate tensors.
-        model_path = "/home/pi/DeepPiCar/tf_model_edgetpu.tflite"
+        model_path = "/home/pi/DeepPiCar/tf_model_edgetpu_old.tflite"
         proc_img = img_preprocess(frame)
         
         interpreter = tflite.Interpreter(model_path, experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
