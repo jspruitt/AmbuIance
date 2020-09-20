@@ -1,9 +1,0 @@
-student: http://www.codeskulptor.org/#user25_wWIzwoMXqs_72.py
-http://www.codeskulptor.org/#user25_wWIzwoMXqs_69.py
-http://activeed.rice.edu/dev836ck38av8d09/#user24_wWIzwoMXqs_41.py
-
-provided: http://www.codeskulptor.org/#user25_SJQUrd1fLm_43.py
-http://activeed.rice.edu/dev836ck38av8d09/#user24_SJQUrd1fLm_37.py
-
-
-Python astar: http://scriptogr.am/jdp/post/pathfinding-with-python-graphs-and-a-star
